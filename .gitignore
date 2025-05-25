@@ -3,3 +3,6 @@
 
 # add log files
 *.log
+
+*.key
+*.key.pub
