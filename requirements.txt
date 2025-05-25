@@ -1,0 +1,27 @@
+# API 및 데이터 처리
+requests==2.31.0
+pandas==2.2.0
+pykrx==1.0.40
+python-dotenv==1.0.1
+
+# 데이터베이스
+SQLAlchemy==2.0.25
+alembic==1.13.1
+
+# 스케줄링
+schedule==1.2.1
+
+# 유틸리티
+python-dateutil==2.8.2
+pytz==2024.1
+
+# 로깅
+loguru==0.7.2
+
+# 테스트
+pytest==8.0.0
+pytest-cov==4.1.0
+
+# 타입 힌팅
+mypy==1.8.0
+types-requests==2.31.0.20240125 
