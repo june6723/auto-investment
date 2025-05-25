@@ -393,6 +393,138 @@ class KisAPI:
             logger.error(f"주문 실행 실패: {str(e)}")
             raise
 
+    def calculate_order_quantity(self, code: str, budget: int, market: str = "J") -> Tuple[int, int]:
+        """
+        주어진 예산 내에서 주문 가능한 최대 수량 계산
+        
+        Args:
+            code: 종목코드
+            budget: 주문 예산 (원)
+            market: 시장구분 (1: 코스피, J: 코스닥, 2: 코넥스)
+            
+        Returns:
+            Tuple[int, int]: (주문 수량, 예상 주문 금액)
+            
+        Raises:
+            KisAPIError: 시세 조회 실패시
+        """
+        # 현재가 조회
+        price_info = self.get_stock_price(code, market=market)
+        current_price = int(price_info.get("output", {}).get("stck_prpr", 0))
+        
+        if current_price == 0:
+            raise KisAPIError(f"종목 {code}의 현재가를 조회할 수 없습니다.")
+        
+        # 주문 가능 수량 계산 (예산을 현재가로 나눈 몫)
+        quantity = budget // current_price
+        
+        if quantity == 0:
+            raise KisAPIError(f"예산 {budget:,}원으로는 1주도 매수할 수 없습니다. (현재가: {current_price:,}원)")
+        
+        # 예상 주문 금액 계산
+        expected_amount = quantity * current_price
+        
+        logger.info(f"종목 {code} 주문 수량 계산: {quantity}주 (현재가: {current_price:,}원, 예상금액: {expected_amount:,}원)")
+        
+        return quantity, expected_amount
+
+    def place_regular_order(self, code: str, budget: int, market: str = "J") -> Dict:
+        """
+        정기 주문 실행 (시장가)
+        
+        Args:
+            code: 종목코드
+            budget: 주문 예산 (원)
+            market: 시장구분 (1: 코스피, J: 코스닥, 2: 코넥스)
+            
+        Returns:
+            Dict: 주문 결과
+            
+        Raises:
+            KisAPIError: 주문 실패시
+        """
+        try:
+            # 주문 수량 계산
+            quantity, expected_amount = self.calculate_order_quantity(code, budget, market)
+            
+            # 시장가 주문 실행
+            order = self.place_order(
+                code=code,
+                quantity=quantity,
+                order_type="01",  # 시장가
+                side="BUY",
+                market=market
+            )
+            
+            logger.info(f"정기 주문 실행 완료: {code} {quantity}주 (예상금액: {expected_amount:,}원)")
+            return order
+            
+        except KisAPIError as e:
+            logger.error(f"정기 주문 실패: {str(e)}")
+            raise
+
+    def get_historical_prices(
+        self,
+        code: str,
+        start_date: str,
+        end_date: str,
+        market: str = "J"
+    ) -> Dict:
+        """
+        과거 시세 데이터 조회
+        
+        Args:
+            code: 종목코드
+            start_date: 시작일자 (YYYYMMDD)
+            end_date: 종료일자 (YYYYMMDD)
+            market: 시장구분 (1: 코스피, J: 코스닥, 2: 코넥스)
+            
+        Returns:
+            Dict: 일별 시세 데이터
+            
+        Raises:
+            KisAPIError: API 요청 실패시
+        """
+        endpoint = "/uapi/domestic-stock/v1/quotations/inquire-daily-price"
+        tr_id = "FHKST03010100"  # 일별 시세 조회
+        
+        params = {
+            "FID_COND_MRKT_DIV_CODE": market,
+            "FID_INPUT_ISCD": code,
+            "FID_INPUT_DATE_1": start_date,
+            "FID_INPUT_DATE_2": end_date,
+            "FID_PERIOD_DIV_CODE": "D",  # 일별
+            "FID_ORG_ADJ_PRC": "1",  # 수정주가
+        }
+        
+        try:
+            result = self._request("GET", endpoint, tr_id, params=params)
+            
+            # 응답 데이터 가공
+            price_data = []
+            for item in result.get("output2", []):
+                price_data.append({
+                    "date": item.get("stck_bsop_date"),  # 기준일자
+                    "open": int(item.get("stck_oprc", 0)),  # 시가
+                    "high": int(item.get("stck_hgpr", 0)),  # 고가
+                    "low": int(item.get("stck_lwpr", 0)),   # 저가
+                    "close": int(item.get("stck_clpr", 0)), # 종가
+                    "volume": int(item.get("acml_vol", 0)), # 거래량
+                    "amount": int(item.get("acml_tr_pbmn", 0)), # 거래대금
+                })
+            
+            logger.info(f"과거 시세 데이터 조회 완료: {code} ({start_date} ~ {end_date})")
+            return {
+                "code": code,
+                "start_date": start_date,
+                "end_date": end_date,
+                "prices": price_data
+            }
+            
+        except KisAPIError as e:
+            logger.error(f"과거 시세 데이터 조회 실패: {str(e)}")
+            raise
+
 
 # 사용 예시
 if __name__ == "__main__":
@@ -401,25 +533,26 @@ if __name__ == "__main__":
         api = KisAPI(mode=KisAPI.MODE_PAPER)
         logger.info("API 클라이언트가 초기화되었습니다.")
         
-        # 계좌 잔고 조회
-        balance = api.get_account_balance()
-        print("\n[계좌 잔고]")
-        print(json.dumps(balance, indent=2, ensure_ascii=False))
+        # 정기 주문 테스트
+        BUDGET = 125_000  # 12.5만원
         
-        # KODEX 미국S&P500(379800) 시세 조회
-        price = api.get_stock_price("379800", market="J")
-        current_price = price.get("output", {}).get('stck_prpr', 'N/A')
-        print(f"\n[KODEX 미국S&P500(379800) 현재가: {current_price}원]")
-        
-        # 주문 예시
-        order = api.place_order(
+        # KODEX 미국S&P500 정기 주문
+        sp500_order = api.place_regular_order(
             code="379800",  # KODEX 미국S&P500
-            quantity=1,     # 1주
-            order_type="01",  # 시장가
-            side="BUY",    # 매수
+            budget=BUDGET,
+            market="J"
         )
-        print("\n[주문 결과]")
-        print(json.dumps(order, indent=2, ensure_ascii=False))
+        print("\n[KODEX 미국S&P500 주문 결과]")
+        print(json.dumps(sp500_order, indent=2, ensure_ascii=False))
+        
+        # KODEX 미국나스닥100 정기 주문
+        nasdaq_order = api.place_regular_order(
+            code="379800",  # KODEX 미국나스닥100
+            budget=BUDGET,
+            market="J"
+        )
+        print("\n[KODEX 미국나스닥100 주문 결과]")
+        print(json.dumps(nasdaq_order, indent=2, ensure_ascii=False))
         
     except KisAPIError as e:
         logger.error(f"에러 발생: {str(e)}")
