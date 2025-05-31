@@ -3,6 +3,7 @@ from oci.config import from_file
 from pathlib import Path
 import os
 from typing import Dict
+import base64
 
 class SecretManager:
     def __init__(self):
@@ -19,8 +20,11 @@ class SecretManager:
     def get_secret(self, secret_id: str) -> str:
         """Vault에서 시크릿을 가져옵니다."""
         try:
-            secret = self.vault_client.get_secret(secret_id)
-            return secret.data.secret_bundle_content.content
+            # get_secret_bundle 메서드 사용
+            secret_bundle = self.vault_client.get_secret_bundle(secret_id)
+            # base64로 인코딩된 시크릿 내용을 디코딩
+            secret_content = base64.b64decode(secret_bundle.data.secret_bundle_content.content).decode('utf-8')
+            return secret_content
         except Exception as e:
             raise Exception(f"Failed to get secret {secret_id}: {str(e)}")
     
