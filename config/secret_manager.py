@@ -8,7 +8,8 @@ import base64
 class SecretManager:
     def __init__(self):
         self.config = from_file()
-        self.vault_client = oci.vault.VaultsClient(self.config)
+        # VaultsClient 대신 SecretsClient 사용
+        self.secrets_client = oci.secrets.SecretsClient(self.config)
         
         # Vault 시크릿 ID 매핑
         self.secret_ids = {
@@ -21,7 +22,7 @@ class SecretManager:
         """Vault에서 시크릿을 가져옵니다."""
         try:
             # get_secret_bundle 메서드 사용
-            secret_bundle = self.vault_client.get_secret_bundle(secret_id)
+            secret_bundle = self.secrets_client.get_secret_bundle(secret_id)
             # base64로 인코딩된 시크릿 내용을 디코딩
             secret_content = base64.b64decode(secret_bundle.data.secret_bundle_content.content).decode('utf-8')
             return secret_content
