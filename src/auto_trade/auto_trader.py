@@ -103,13 +103,46 @@ class AutoTrader:
         except Exception as e:
             logger.error(f"주문 실행 중 오류 발생: {str(e)}")
             
+    def _seoul_to_utc_time(self, seoul_time_str: str) -> str:
+        """
+        서울 시간을 UTC 시간으로 변환
+        
+        Args:
+            seoul_time_str: "HH:MM" 형식의 서울 시간
+            
+        Returns:
+            str: "HH:MM" 형식의 UTC 시간
+        """
+        # 오늘 날짜로 서울 시간 객체 생성
+        today = datetime.now(self.seoul_tz).date()
+        hour, minute = map(int, seoul_time_str.split(':'))
+        seoul_dt = self.seoul_tz.localize(datetime.combine(today, datetime.min.time().replace(hour=hour, minute=minute)))
+        
+        # UTC로 변환
+        utc_dt = seoul_dt.astimezone(pytz.UTC)
+        
+        return utc_dt.strftime("%H:%M")
+        
     def start(self):
         """자동 주문 시스템 시작"""
-        # 매주 월요일 10시에 주문 실행
-        schedule.every().monday.at("10:00").do(self._execute_orders)
+        # 서울 시간 기준으로 매주 월요일 10시에 주문 실행
+        # UTC 시간으로 변환: 서울 10:00 = UTC 01:00 (서머타임 고려)
+        seoul_time = "10:00"
+        utc_time = self._seoul_to_utc_time(seoul_time)
+        
+        # 현재 시간 확인
+        utc_now = datetime.now(pytz.UTC)
+        seoul_now = utc_now.astimezone(self.seoul_tz)
+        
+        logger.info(f"시스템 UTC 시간: {utc_now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        logger.info(f"서울 시간: {seoul_now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        logger.info(f"스케줄 설정: 매주 월요일 서울 시간 {seoul_time} (UTC {utc_time})")
+        
+        # UTC 시간으로 스케줄 설정
+        schedule.every().friday.at(utc_time).do(self._execute_orders)
         
         logger.info("자동 주문 시스템이 시작되었습니다.")
-        logger.info("매주 월요일 오전 10시에 주문이 실행됩니다.")
+        logger.info("매주 금요일 오전 10시(서울 시간)에 주문이 실행됩니다.")
         
         try:
             while True:
