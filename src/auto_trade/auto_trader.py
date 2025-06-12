@@ -161,12 +161,12 @@ class AutoTrader:
 if __name__ == "__main__":
     try:
         # API 클라이언트 초기화
-        api = KisAPI(mode=KisAPI.MODE_PAPER)
+        api = KisAPI(mode=KisAPI.MODE_REAL)
         
         # 자동 주문 시스템 초기화
         trader = AutoTrader(
             api=api,
-            codes=["379800", "379810"],  # KODEX 미국S&P500, KODEX 미국나스닥100
+            codes=["379800", "379810", "329750"],  # KODEX 미국S&P500, KODEX 미국나스닥100, TIGER 미국달러단기채권액티브
             weekly_budget=125_000,  # 각 종목당 주 12.5만원 (각 종목당 월 50만원)
             market="J"
         )
