@@ -14,14 +14,14 @@ class SecretManager:
         # Vault 시크릿 ID 매핑
         self.secret_ids = {
             # 모의투자 API 설정
-            'KIS_PAPER_APP_KEY': os.getenv('KIS_PAPER_APP_KEY'),
-            'KIS_PAPER_APP_SECRET': os.getenv('KIS_PAPER_APP_SECRET'),
-            'KIS_PAPER_ACCOUNT_NO': os.getenv('KIS_PAPER_ACCOUNT_NO'),
+            'KIS_PAPER_APP_KEY': os.getenv('KIS_PAPER_APP_KEY_SECRET_ID'),
+            'KIS_PAPER_APP_SECRET': os.getenv('KIS_PAPER_APP_SECRET_SECRET_ID'),
+            'KIS_PAPER_ACCOUNT_NO': os.getenv('KIS_PAPER_ACCOUNT_NO_SECRET_ID'),
             
             # 실전투자 API 설정
-            'KIS_APP_KEY': os.getenv('KIS_APP_KEY'),
-            'KIS_APP_SECRET': os.getenv('KIS_APP_SECRET'),
-            'KIS_ACCOUNT_NO': os.getenv('KIS_ACCOUNT_NO')
+            'KIS_APP_KEY': os.getenv('KIS_APP_KEY_SECRET_ID'),
+            'KIS_APP_SECRET': os.getenv('KIS_APP_SECRET_SECRET_ID'),
+            'KIS_ACCOUNT_NO': os.getenv('KIS_ACCOUNT_NO_SECRET_ID')
         }
         
     def get_secret(self, secret_id: str) -> str:
@@ -67,14 +67,14 @@ if __name__ == "__main__":
     # 환경 변수에서 시크릿 ID를 가져와야 합니다
     required_env_vars = [
         # 모의투자 시크릿 ID
-        'KIS_PAPER_APP_KEY',
-        'KIS_PAPER_APP_SECRET',
-        'KIS_PAPER_ACCOUNT_NO',
+        'KIS_PAPER_APP_KEY_SECRET_ID',
+        'KIS_PAPER_APP_SECRET_SECRET_ID',
+        'KIS_PAPER_ACCOUNT_NO_SECRET_ID',
         
         # 실전투자 시크릿 ID
-        'KIS_APP_KEY',
-        'KIS_APP_SECRET',
-        'KIS_ACCOUNT_NO'
+        'KIS_APP_KEY_SECRET_ID',
+        'KIS_APP_SECRET_SECRET_ID',
+        'KIS_ACCOUNT_NO_SECRET_ID'
     ]
     
     # 환경 변수 확인
