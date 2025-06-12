@@ -1,0 +1,15 @@
+[Unit]
+Description=Auto Investment Trader
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/auto-investment
+Environment=PATH=/home/ubuntu/auto-investment/venv/bin
+ExecStart=/home/ubuntu/auto-investment/venv/bin/python -m src.auto_trade.auto_trader
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target 
