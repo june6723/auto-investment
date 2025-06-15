@@ -195,7 +195,8 @@ class KisAPI:
         endpoint: str,
         tr_id: str,
         params: Optional[Dict] = None,
-        data: Optional[Dict] = None
+        data: Optional[Dict] = None,
+        retry_count: int = 0
     ) -> Dict:
         """
         API 요청 실행
@@ -206,6 +207,7 @@ class KisAPI:
             tr_id: 거래 ID
             params: URL 파라미터
             data: 요청 본문 데이터
+            retry_count: 재시도 횟수 (토큰 만료 시 재시도용)
             
         Returns:
             Dict: API 응답 데이터
@@ -263,6 +265,19 @@ class KisAPI:
             except json.JSONDecodeError:
                 logger.error(f"JSON 파싱 실패. 응답 내용: {response.text}")
                 raise KisAPIError(f"응답을 JSON으로 파싱할 수 없습니다: {response.text}")
+            
+            # 토큰 만료 에러 체크 및 재시도
+            if (response.status_code == 500 and 
+                "rt_cd" in result and result["rt_cd"] == "1" and
+                "msg_cd" in result and result["msg_cd"] == "EGW00123" and
+                retry_count < 1):  # 최대 1회 재시도
+                
+                logger.warning("토큰이 만료되었습니다. 토큰을 갱신하고 재시도합니다.")
+                self._issue_token()
+                self._save_token()
+                
+                # 재시도 (retry_count 증가)
+                return self._request(method, endpoint, tr_id, params, data, retry_count + 1)
             
             # API 에러 체크
             if response.status_code != 200 or ("rt_cd" in result and result["rt_cd"] != "0"):

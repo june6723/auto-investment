@@ -67,9 +67,25 @@ class AutoTrader:
                 logger.warning("현재 시장이 닫혀있습니다.")
                 return
                 
-            # 계좌 잔고 확인
-            balance_info = self.api.get_account_balance()
-            available_balance = int(balance_info.get("output2", [{}])[0].get("prvs_rcdl_excc_amt", 0))
+            # API 토큰 상태 확인 및 갱신
+            try:
+                # 계좌 잔고 확인 (토큰 상태 테스트)
+                balance_info = self.api.get_account_balance()
+                available_balance = int(balance_info.get("output2", [{}])[0].get("prvs_rcdl_excc_amt", 0))
+                logger.info(f"계좌 잔고 확인 완료: {available_balance:,}원")
+                
+            except Exception as e:
+                if "EGW00123" in str(e) or "만료된 token" in str(e):
+                    logger.warning("토큰이 만료되었습니다. 토큰을 갱신하고 재시도합니다.")
+                    # 토큰 갱신을 위해 새로운 API 인스턴스 생성
+                    from src.api.kis_api import KisAPI
+                    self.api = KisAPI(mode=self.api.mode)
+                    # 재귀 호출로 다시 시도
+                    self._execute_orders()
+                    return
+                else:
+                    logger.error(f"계좌 잔고 확인 실패: {str(e)}")
+                    return
             
             if available_balance < self.weekly_budget:
                 logger.warning(f"잔고 부족: {available_balance:,}원 (필요: {self.weekly_budget:,}원)")
@@ -97,7 +113,29 @@ class AutoTrader:
                     )
                     
                 except Exception as e:
-                    logger.error(f"종목 {code} 주문 실패: {str(e)}")
+                    if "EGW00123" in str(e) or "만료된 token" in str(e):
+                        logger.warning(f"종목 {code} 주문 중 토큰 만료. 토큰을 갱신하고 재시도합니다.")
+                        # 토큰 갱신을 위해 새로운 API 인스턴스 생성
+                        from src.api.kis_api import KisAPI
+                        self.api = KisAPI(mode=self.api.mode)
+                        # 해당 종목 다시 시도
+                        try:
+                            result = self.api.place_regular_order(
+                                code=code,
+                                budget=budget_per_stock,
+                                market=self.market
+                            )
+                            order_info = result.get("output", {})
+                            logger.info(
+                                f"재시도 주문 실행 완료: {code}\n"
+                                f"주문 수량: {order_info.get('ord_qty')}주\n"
+                                f"주문 금액: {int(order_info.get('ord_amt', 0)):,}원\n"
+                                f"주문 번호: {order_info.get('ord_no')}"
+                            )
+                        except Exception as retry_e:
+                            logger.error(f"재시도 후 종목 {code} 주문 실패: {str(retry_e)}")
+                    else:
+                        logger.error(f"종목 {code} 주문 실패: {str(e)}")
                     continue
                     
         except Exception as e:
