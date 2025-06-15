@@ -177,10 +177,10 @@ class AutoTrader:
         logger.info(f"스케줄 설정: 매주 월요일 서울 시간 {seoul_time} (UTC {utc_time})")
         
         # UTC 시간으로 스케줄 설정
-        schedule.every().friday.at(utc_time).do(self._execute_orders)
+        schedule.every().monday.at(utc_time).do(self._execute_orders)
         
         logger.info("자동 주문 시스템이 시작되었습니다.")
-        logger.info("매주 금요일 오전 10시(서울 시간)에 주문이 실행됩니다.")
+        logger.info("매주 월요일 오전 10시(서울 시간)에 주문이 실행됩니다.")
         
         try:
             while True:
