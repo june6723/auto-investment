@@ -75,8 +75,12 @@ class KisAPI:
         self._last_request_time = 0  # 마지막 요청 시간
         
         # API 키 검증
-        if not all([KIS_APP_KEY, KIS_APP_SECRET, KIS_ACCOUNT_NO]):
-            raise KisAPIError("API 키가 설정되지 않았습니다. .env 파일을 확인해주세요.")
+        if self.mode == self.MODE_PAPER:
+            if not all([KIS_PAPER_APP_KEY, KIS_PAPER_APP_SECRET, KIS_PAPER_ACCOUNT_NO]):
+                raise KisAPIError("모의투자 API 키가 설정되지 않았습니다. .env 파일을 확인해주세요.")
+        else:
+            if not all([KIS_APP_KEY, KIS_APP_SECRET, KIS_ACCOUNT_NO]):
+                raise KisAPIError("실전투자 API 키가 설정되지 않았습니다. .env 파일을 확인해주세요.")
         
         # 저장된 토큰이 있으면 불러오기, 없으면 새로 발급
         if not self._load_token():
@@ -227,7 +231,9 @@ class KisAPI:
             logger.debug(f"API 호출 제한 준수를 위해 {sleep_time:.2f}초 대기")
             time.sleep(sleep_time)
         
-        url = f"{self.PAPER_BASE_URL}{endpoint}"
+        # 모드에 따라 적절한 BASE_URL 선택
+        base_url = self.PAPER_BASE_URL if self.mode == self.MODE_PAPER else self.BASE_URL
+        url = f"{base_url}{endpoint}"
         headers = self._get_headers()
         headers["tr_id"] = tr_id
         
