@@ -205,7 +205,7 @@ if __name__ == "__main__":
         trader = AutoTrader(
             api=api,
             codes=["379800", "379810", "329750"],  # KODEX 미국S&P500, KODEX 미국나스닥100, TIGER 미국달러단기채권액티브
-            weekly_budget=400_000,  # 각 종목당 주 12.5만원 (각 종목당 월 50만원)
+            weekly_budget=450_000,
             market="J"
         )
         
