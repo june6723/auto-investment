@@ -44,9 +44,8 @@ LOCAL_CHANGES=$(git status --porcelain)
 if [ ! -z "$LOCAL_CHANGES" ]; then
     warn "로컬 변경사항이 있습니다:"
     echo "$LOCAL_CHANGES"
-    read -p "계속 진행하시겠습니까? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    read -p "계속 진행하시겠습니까? (y/N) " REPLY
+    if [ "${REPLY}" != "y" ] && [ "${REPLY}" != "Y" ]; then
         error "배포가 취소되었습니다."
     fi
 fi
@@ -55,9 +54,8 @@ fi
 BEHIND=$(git rev-list HEAD..origin/$CURRENT_BRANCH --count)
 if [ $BEHIND -eq 0 ]; then
     log "최신 버전입니다. 업데이트가 필요하지 않습니다."
-    read -p "서비스를 재시작하시겠습니까? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    read -p "서비스를 재시작하시겠습니까? (y/N) " REPLY
+    if [ "${REPLY}" != "y" ] && [ "${REPLY}" != "Y" ]; then
         log "배포가 취소되었습니다."
         exit 0
     fi
