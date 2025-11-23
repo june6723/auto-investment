@@ -204,7 +204,7 @@ if __name__ == "__main__":
         # 자동 주문 시스템 초기화
         trader = AutoTrader(
             api=api,
-            codes=["379800", "379810", "329750"],  # KODEX 미국S&P500, KODEX 미국나스닥100, TIGER 미국달러단기채권액티브
+            codes=["379800", "379810", "457480"],  # KODEX 미국S&P500, KODEX 미국나스닥100, ACE 테슬라밸류체인액티브
             weekly_budget=450_000,
             market="J"
         )
